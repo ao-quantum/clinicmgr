@@ -2,16 +2,26 @@ import { Injectable } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { compare } from 'bcrypt';
 import { User } from '../generated/prisma/client';
+import { JwtService } from '@nestjs/jwt';
+
+export interface PayloadBody {
+    id: number;
+    email: string;
+    firstName: string;
+    lastName: string;
+}
 
 @Injectable()
 export class AuthService {
-    constructor(private users: UsersService) {}
+    constructor(
+        private users: UsersService,
+        private jwt: JwtService,
+    ) {}
 
     async validateUser(
         email: string,
         password: string,
     ): Promise<Omit<User, 'password'> | null> {
-        console.log(process.env.DATABASE_URL);
         // Find user
         const user = await this.users.get({ email });
 
@@ -28,5 +38,22 @@ export class AuthService {
         }
 
         return null;
+    }
+
+    login(user: any) {
+        const payload: PayloadBody = {
+            email: user.email,
+            id: user.id,
+            firstName: user.first_name,
+            lastName: user.last_name,
+        };
+
+        console.log(process.env.JWT_SECRET);
+
+        return {
+            access_token: this.jwt.sign(payload, {
+                secret: process.env.JWT_SECRET,
+            }),
+        };
     }
 }
